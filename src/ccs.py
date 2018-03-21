@@ -1,3 +1,11 @@
+# Coinmarketcalendar.com scraper
+# Use event information data from the calendar along with price history data to understand how events affect price action
+# 1. Scrape event information from the calendar and put into a data structure
+# 2. Export scraped data into an AWS relational database
+# 3. Obtain price history data at different intervals before and after the event
+# 4. Understand the data and how different events have affected price action in the past
+# 5. Machine learning predictive model
+
 from __future__ import print_function
 import re
 import csv
@@ -33,6 +41,7 @@ class coinmarketcapScrape:
     def __init__(self):
         return
 
+    # *Yet to be designed. Pick up key information to categorize events from the title and description
     def inspectEvent(self, description):
         print(description)
         listing = False
@@ -89,9 +98,11 @@ class coinmarketcapScrape:
 
         return listing, deliverable, partnership, meetup
 
+    # Export the dataframe with the event information into a CSV file
     def exportData(self, data):
         return(data.to_csv('eventscalendar.csv', sep=',', encoding='utf-8', index=False))
 
+    # * considered exporting to google sheets* Gets credentials to write into Google Sheets
     def get_credentials(self):
         """Gets valid user credentials from storage.
 
@@ -120,6 +131,7 @@ class coinmarketcapScrape:
             print('Storing credentials to ' + credential_path)
         return credentials
 
+    # Writes dataframe information into a google sheet
     def googleSheets(self):
         # use creds to create a client to interact with the Google Drive API
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -134,7 +146,6 @@ class coinmarketcapScrape:
         # Extract and print all of the values
         list_of_hashes = sheet.get_all_records()
         print(list_of_hashes)
-
 
     # function to fill dataframe for one page
     def filldf(self, soup, pagenum):
@@ -153,6 +164,7 @@ class coinmarketcapScrape:
         # partnership = []
         # meetup = []
 
+        # Iterate through the events and fill in respective information
         for page in range(pagenum):
             eventList = soup[page].find_all('div', {'class': 'content-box-general'})
             for event in eventList:
@@ -256,6 +268,7 @@ class coinmarketcapScrape:
         pages = []
         soups = []
 
+        # Obtain html code from the first (pagenum) number of pages in coinmarketcal.com
         try:
             for n in range(pagenum):
                 if n == 0:
