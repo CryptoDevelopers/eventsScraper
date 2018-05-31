@@ -150,85 +150,84 @@ class coinmarketcapScrape:
     # function to fill dataframe for one page
     def filldf(self, soup, pagenum):
         print('fill them dataframes')
-        # Get lists ready to fill
-        dates = []
-        names = []
-        symbols = []
-        brief = []
-        description = []
-        validation = []
-        votes = []
-        date_added = []
-        # listing = []
-        # deliverable = []
-        # partnership = []
-        # meetup = []
+
+        DFColumns=['Dates', 'Name', 'Symbol', 'Brief', 'Description', 'Votes', 'Validation%', 'Date Added','Source']
+        eventsNA = [{'Dates': '01/01/2018', 'Name': 'Bitcoin', 'Symbol': 'BTC', 'Brief': 'Title', 'Description': 'Description', 'Votes': '99',
+                  'Validation%': '99', 'Date Added': '01/01/2018', 'Source':''}]
+        eventsDF = pd.DataFrame(eventsNA, columns=DFColumns)
+        print(eventsDF)
 
         # Iterate through the events and fill in respective information
         for page in range(pagenum):
-            eventList = soup[page].find_all('div', {'class': 'content-box-general'})
+            eventList = soup[page].find_all('div', {'class': 'card__body'})
             for event in eventList:
                 try:
-                    vote = event.find_all('span', {'class': 'votes'})
+                    vote = event.find_all('div', {'class': 'progress__votes'})
                     vote = vote[0].text
-                    b = '( votes)'
-                    for char in b:
-                        vote = vote.replace(char, "")
-                    votes.append(vote.encode('utf-8'))
+                    vote = vote.replace(" Votes", "")
+                    vote = vote.encode('utf-8')
+                    vote = vote.decode('utf-8')
                     print(vote)
 
                     val = event.find_all('div', {'class': 'progress-bar'})
                     val = val[0].get('aria-valuenow')
-                    validation.append(val.encode('utf-8'))
+                    validation = val.encode('utf-8')
+                    validation = validation.decode('utf-8')
                     print(val)
 
-                    reminder = event.find_all('a', {'class': 'reminder'})
-                    date = reminder[0].get('data-date')
-                    dates.append(date.encode('utf-8'))
+                    links = []
+                    for link in event.find_all(href=True):
+                        links.append(link['href'])
+                    source =links[4]
+                    print(source)
+
+                    val = event.find_all('h5', {'class': 'card__date'})
+                    val = val[0].text
+                    if "earlier" in val:
+                        val = val.replace(" (or earlier)", "")
+                    date = val.encode('utf-8')
+                    date = date.decode('utf-8')
                     print(date)
 
-                    coin = reminder[0].get('data-coin')
-                    names.append(coin.encode('utf-8'))
+                    val = event.find_all('a', {'class': 'link-detail'})
+                    coin = val[0].text
                     print(coin)
 
                     symbol = re.search('\(([^)]+)', coin).group(1)
-                    symbols.append(symbol.encode('utf-8'))
                     print(symbol)
 
-                    title = reminder[0].get('data-title')
-                    brief.append(title.encode('utf-8'))
-                    print(title)
+                    val = event.find_all('h5', {'class': 'card__title'})
+                    brief = val[0].text
+                    print(brief)
 
-                    desc = event.find_all('p', {'class': 'description'})
-                    desc = desc[0].text
-                    desc = desc.encode('utf-8').strip()
-                    #desc = desc.replace("\"","")
-                    description.append(desc)
+                    val = event.find_all('p', {'class': 'card__description'})
+                    desc = val[0].text.strip()
                     print(desc)
 
-                    dateAdded = event.find_all('p', {'class': 'added-date'})
-                    dateAdded = dateAdded[0].text.encode('utf-8')
-                    dateAdded = dateAdded[1:(len(dateAdded) - 1)]
+                    val = event.find_all('p', {'class': 'added-date'})
+                    dateAdded = val[0].text
                     dateAdded = dateAdded.replace('Added ','')
-                    date_added.append(dateAdded)
                     print(dateAdded)
 
-                    # l,d,p,m = self.inspectEvent(title+' '+desc)
-                    # listing.append(l)
-                    # deliverable.append(d)
-                    # partnership.append(p)
-                    # meetup.append(m)
+                    # DFColumns=['Dates', 'Name', 'Symbol', 'Brief', 'Description', 'Votes', 'Validation%', 'Date Added']
+                    #curDF = pd.DataFrame([date, coin, symbol, brief, desc, vote, validation, dateAdded], columns=DFColumns)
+                    curNA = [{'Dates': date, 'Name': coin, 'Symbol': symbol, 'Brief':brief, 'Description':desc, 'Votes':vote, 'Validation%':validation, 'Date Added':dateAdded, 'Source': source}]
+                    curDF = pd.DataFrame(curNA,columns=DFColumns)
+                    print(curDF)
+                    #eventsDF.append(curDF,ignore_index=True)
+                    eventsDF = pd.concat([eventsDF,curDF])
+                    #print(eventsDF)
 
                 except Exception as e:
                     print(e)
-                    dates.append('')
-                    names.append('')
-                    symbols.append('')
-                    brief.append('')
-                    description.append('')
-                    validation.append(0)
-                    votes.append(0)
-                    date_added.append('')
+                    # dates.append('')
+                    # names.append('')
+                    # symbols.append('')
+                    # brief.append('')
+                    # description.append('')
+                    # validation.append(0)
+                    # votes.append(0)
+                    # date_added.append('')
                     # listing.append(False)
                     # deliverable.append(False)
                     # partnership.append(False)
@@ -241,28 +240,12 @@ class coinmarketcapScrape:
             # eventItem['source'] = source.encode('utf-8')
             # #print(source)
 
-        # turn lists into a dataframe
-        db = pd.DataFrame({'Dates': dates,
-                           'Name': names,
-                           'Symbol': symbols,
-                           'Brief': brief,
-                           'Description': description,
-                           'Votes': votes,
-                           'Validation%': validation,
-                           'Date Added': date_added
-                           # 'Listing': listing,
-                           # 'Deliverable':deliverable,
-                           # 'Partnership':partnership,
-                           # 'Meet-up':meetup
-                           })
-        db = db[['Dates', 'Name', 'Symbol', 'Brief', 'Description', 'Votes', 'Validation%', 'Date Added']]
-
-        return db
+        return eventsDF
 
     def main(self):
         print("im in main")
         # number of pages to scrape
-        pagenum = 1
+        pagenum = 35
 
         # put scraped pages into a list
         pages = []
